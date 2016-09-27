@@ -61,5 +61,19 @@ public class HttpStreamTweet {
     System.out.println("Running at http://localhost:8080");
 
   }
+
+  /*
+  Try it out:
+  sbt "runMain com.lightbend.akka.johan.stream.samples.java.HttpStreamTweet"
+
+  access the http route:
+  curl http://localhost:8080/tweets
+
+  look at the os buffers (macOS):
+  ./print-os-buffers.sh
+
+  pause the client Ctrl+Z - start it again with 'fg' (unixy os:es)
+  
+   */
 }
 
