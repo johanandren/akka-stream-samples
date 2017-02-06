@@ -11,6 +11,9 @@ import akka.stream.javadsl.*;
 
 import java.util.concurrent.CompletionStage;
 
+/**
+ * Minimal sample of Akka Streams
+ */
 public class Sample1 {
     public static void main(String[] args) {
         final ActorSystem system = ActorSystem.create();

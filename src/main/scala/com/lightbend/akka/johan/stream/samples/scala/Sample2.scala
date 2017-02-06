@@ -7,6 +7,9 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Flow, Sink, Source}
 
+/**
+  * Stages can be expressed with a "fluent" API:
+  */
 object Sample2 extends App {
   implicit val system = ActorSystem()
   implicit val mat = ActorMaterializer()

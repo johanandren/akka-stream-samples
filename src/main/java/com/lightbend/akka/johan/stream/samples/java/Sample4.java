@@ -29,7 +29,11 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Accepts strings over websocket at ws://127.0.0.1/measurements
- * groups
+ * Protects the "database" by batching element in groups of 1000 but makes sure to at least
+ * write every 1 second to not write too stale data or loose too much on failure.
+ *
+ * Based on this (great) blog article by Colin Breck:
+ * http://blog.colinbreck.com/akka-streams-a-motivating-example/
  */
 public class Sample4 {
 

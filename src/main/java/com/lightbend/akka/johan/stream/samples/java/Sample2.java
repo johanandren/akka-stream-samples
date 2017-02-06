@@ -3,18 +3,14 @@
  */
 package com.lightbend.akka.johan.stream.samples.java;
 
-import akka.Done;
-import akka.NotUsed;
 import akka.actor.ActorSystem;
 import akka.stream.ActorMaterializer;
 import akka.stream.Materializer;
-import akka.stream.javadsl.Flow;
-import akka.stream.javadsl.RunnableGraph;
-import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 
-import java.util.concurrent.CompletionStage;
-
+/**
+ * Stages can be expressed with a "fluent" API:
+ */
 public class Sample2 {
     public static void main(String[] args) {
         final ActorSystem system = ActorSystem.create();

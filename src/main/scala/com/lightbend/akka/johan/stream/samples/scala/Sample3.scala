@@ -3,49 +3,40 @@
  */
 package com.lightbend.akka.johan.stream.samples.scala
 
-import akka.pattern.Patterns.after
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.ws.{Message, TextMessage}
+import akka.http.scaladsl.model.ContentTypes.`text/plain(UTF-8)`
+import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpResponse}
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.{Flow, Source}
+import akka.stream.scaladsl.Source
+import akka.util.ByteString
 
-import scala.collection.immutable.Seq
-import scala.concurrent.Future
-import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
+/**
+  * Natural numbers (up to maximum long, then it wraps around) as a service http://127.0.0.1/numbers
+  */
 object Sample3 extends App {
-
-  object Database {
-    def asyncBulkInsert(entries: Seq[String])(implicit system: ActorSystem): Future[Seq[String]] =
-      // simulate that writing to a database takes ~30 millis
-      after(30.millis, system.scheduler, system.dispatcher, Future.successful(entries))
-
-  }
 
   implicit val system = ActorSystem()
   import system.dispatcher
   implicit val mat = ActorMaterializer()
 
-  val measurementsFlow =
-    Flow[Message].flatMapConcat { message =>
-        // handles both strict and streamed ws messages by folding
-        // the later into a single string (in memory)
-        message.asTextMessage.getStreamedText.fold("")(_ + _)
-      }
-      .groupedWithin(1000, 1.second)
-      .mapAsync(5)(Database.asyncBulkInsert)
-      .map(written => TextMessage("wrote up to: " + written.last))
+  val numbers =
+    Source.unfold(0L) { (n) =>
+      val next = n + 1
+      Some((next, next))
+    }.map(n => ByteString(n + "\n"))
 
   val route =
-    path("measurements") {
+    path("numbers") {
       get {
-        handleWebSocketMessages(measurementsFlow)
+        complete(
+          HttpResponse(entity = HttpEntity(`text/plain(UTF-8)`, numbers))
+        )
       }
     }
-
   val futureBinding = Http().bindAndHandle(route, "127.0.0.1", 8080)
 
   futureBinding.onComplete {
@@ -58,5 +49,4 @@ object Sample3 extends App {
       ex.fillInStackTrace()
 
   }
-
 }

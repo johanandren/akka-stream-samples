@@ -8,6 +8,9 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Flow, Sink, Source}
 
+/**
+  * Minimal sample of Akka Streams
+  */
 object Sample1 extends App {
   implicit val system = ActorSystem()
   implicit val mat = ActorMaterializer()
