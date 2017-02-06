@@ -5,20 +5,23 @@ package com.lightbend.akka.johan.stream.samples.java;
 
 import akka.NotUsed;
 import akka.actor.ActorSystem;
-import static akka.pattern.PatternsCS.after;
-
+import akka.http.impl.util.JavaMapping;
 import akka.http.javadsl.ConnectHttp;
+import akka.http.javadsl.Http;
 import akka.http.javadsl.ServerBinding;
+import akka.http.javadsl.common.CsvEntityStreamingSupport;
+import akka.http.javadsl.common.EntityStreamingSupport;
+import akka.http.javadsl.marshalling.Marshaller;
+import akka.http.javadsl.model.*;
+import akka.http.javadsl.model.ws.Message;
 import akka.http.javadsl.model.ws.TextMessage;
 import akka.http.javadsl.server.Route;
-import akka.http.javadsl.model.ws.Message;
-import static akka.http.javadsl.server.Directives.*;
-import static java.util.concurrent.TimeUnit.SECONDS;
-
-import akka.http.javadsl.Http;
+import akka.http.javadsl.unmarshalling.Unmarshaller$;
 import akka.stream.ActorMaterializer;
 import akka.stream.Materializer;
 import akka.stream.javadsl.Flow;
+import akka.stream.javadsl.Source;
+import akka.util.ByteString;
 import scala.concurrent.duration.FiniteDuration;
 
 import java.net.InetSocketAddress;
@@ -27,63 +30,38 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 
+import static akka.http.javadsl.server.Directives.*;
+import static akka.pattern.PatternsCS.after;
+import static java.util.concurrent.TimeUnit.SECONDS;
+
 /**
- * Accepts strings over websocket at ws://127.0.0.1/measurements
- * groups
+ * Natural numbers (up to maximum int) as a service http://127.0.0.1/numbers
  */
 public class Sample3 {
-
-    static class Database {
-
-        private final ActorSystem system;
-
-        public Database(ActorSystem system) {
-            this.system = system;
-        }
-
-        public CompletionStage<List<String>> asyncBulkInsert(final List<String> entries) {
-            // simulate that writing to a database takes ~30 millis
-            return after(FiniteDuration.create(30, TimeUnit.MILLISECONDS),
-                    system.scheduler(),
-                    system.dispatcher(),
-                    () -> {
-                        System.out.println("write completed, last element: " + entries.get(entries.size() - 1));
-                        return CompletableFuture.completedFuture(entries);
-                    }
-            );
-        }
-    }
-
 
     public static void main(String[] args) {
         final ActorSystem system = ActorSystem.create();
         final Materializer materializer = ActorMaterializer.create(system);
-        final Database database = new Database(system);
-        final ConnectHttp host = ConnectHttp.toHost("127.0.0.1", 8080);
+        final ConnectHttp host = ConnectHttp.toHost("127.0.0.1", 9000);
         final Http http = Http.get(system);
 
-        final Flow<Message, Message, NotUsed> measurementsFlow =
-                Flow.of(Message.class)
-                        .flatMapConcat((Message message) ->
-                                // handles both strict and streamed ws messages by folding
-                                // the later into a single string (in memory)
-                                message.asTextMessage()
-                                        .getStreamedText()
-                                        .fold("", (acc, elem) -> acc + elem)
-                        )
-                        .groupedWithin(1000, FiniteDuration.create(1, SECONDS))
-                        .mapAsync(5, database::asyncBulkInsert)
-                        .map(written ->
-                                TextMessage.create(
-                                        "wrote up to: " + written.get(written.size() - 1)
-                                )
-                        );
+        // Note that a more realistic solution would use the EntityStreaming API to stream elements
+        // as for example JSON Streaming (see the docs for more details)
+        final Source<ByteString, NotUsed> numbers = Source.range(0, Integer.MAX_VALUE)
+                .map(n -> ByteString.fromString(n.toString() + "\n"));
 
-        final Route route = path("measurements", () ->
-                get(() ->
-                        handleWebSocketMessages(measurementsFlow)
-                )
-        );
+
+        final Route route =
+                path("numbers", () ->
+                        get(() ->
+                                complete(HttpResponse.create()
+                                        .withStatus(StatusCodes.OK)
+                                        .withEntity(HttpEntities.create(
+                                                ContentTypes.TEXT_PLAIN_UTF8,
+                                                numbers
+                                        )))
+                        )
+                );
 
         final CompletionStage<ServerBinding> bindingCompletionStage =
                 http.bindAndHandle(route.flow(system, materializer), host, materializer);
