@@ -16,15 +16,16 @@ public class Sample1 {
         final ActorSystem system = ActorSystem.create();
         final Materializer materializer = ActorMaterializer.create(system);
 
-        Source<Integer, NotUsed> source = Source.range(0, 20000000);
+        final Source<Integer, NotUsed> source =
+                Source.range(0, 20000000);
 
-        Flow<Integer, String, NotUsed> flow =
+        final Flow<Integer, String, NotUsed> flow =
                 Flow.fromFunction((Integer n) -> n.toString());
 
-        Sink<String, CompletionStage<Done>> sink =
+        final Sink<String, CompletionStage<Done>> sink =
                 Sink.foreach(str -> System.out.println(str));
 
-        RunnableGraph<NotUsed> runnable = source.via(flow).to(sink);
+        final RunnableGraph<NotUsed> runnable = source.via(flow).to(sink);
 
         runnable.run(materializer);
     }
