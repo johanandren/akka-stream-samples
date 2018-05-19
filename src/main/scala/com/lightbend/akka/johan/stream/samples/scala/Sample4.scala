@@ -1,10 +1,11 @@
 /*
- * Copyright (C) 2009-2017 Lightbend Inc. <http://www.lightbend.com>
+ * Copyright (C) 2009-2018 Lightbend Inc. <http://www.lightbend.com>
  */
 package com.lightbend.akka.johan.stream.samples.scala
 
 import akka.pattern.Patterns.after
 import akka.actor.ActorSystem
+import akka.http.javadsl.model.ws.BinaryMessage
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.ws.{Message, TextMessage}
 import akka.http.scaladsl.server.Directives._
@@ -38,10 +39,11 @@ object Sample4 extends App {
   implicit val mat = ActorMaterializer()
 
   val measurementsFlow =
-    Flow[Message].flatMapConcat { message =>
+    Flow[Message].flatMapConcat{
         // handles both strict and streamed ws messages by folding
         // the later into a single string (in memory)
-        message.asTextMessage.getStreamedText.fold("")(_ + _)
+        case t: TextMessage => t.textStream.fold("")(_ + _)
+        case b: BinaryMessage => throw new RuntimeException("Binary not supported")
       }
       .groupedWithin(1000, 1.second)
       .mapAsync(5)(Database.asyncBulkInsert)

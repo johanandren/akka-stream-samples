@@ -2,6 +2,7 @@ organization := "com.lightbend.akka.johan"
 name := "stream-samples"
 version := "1.0"
 scalaVersion := "2.12.6"
+javacOptions += "-Xlint:deprecation"
 
 scalacOptions ++= List(
   "-unchecked",

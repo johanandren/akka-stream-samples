@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2017 Lightbend Inc. <http://www.lightbend.com>
+ * Copyright (C) 2009-2018 Lightbend Inc. <http://www.lightbend.com>
  */
 package com.lightbend.akka.johan.stream.samples.scala
 
@@ -23,11 +23,7 @@ object Sample3 extends App {
   import system.dispatcher
   implicit val mat = ActorMaterializer()
 
-  val numbers =
-    Source.unfold(0L) { (n) =>
-      val next = n + 1
-      Some((next, next))
-    }.map(n => ByteString(n + "\n"))
+  val numbers = Source(0 to Int.MaxValue).map(n => ByteString(n + "\n"))
 
   val route =
     path("numbers") {
@@ -37,8 +33,8 @@ object Sample3 extends App {
         )
       }
     }
-  val futureBinding = Http().bindAndHandle(route, "127.0.0.1", 8080)
 
+  val futureBinding = Http().bindAndHandle(route, "127.0.0.1", 8080)
   futureBinding.onComplete {
     case Success(binding) =>
       val address = binding.localAddress
@@ -47,6 +43,5 @@ object Sample3 extends App {
     case Failure(ex) =>
       println(s"Failed to bind HTTP server: ${ex.getMessage}")
       ex.fillInStackTrace()
-
   }
 }

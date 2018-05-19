@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2017 Lightbend Inc. <http://www.lightbend.com>
+ * Copyright (C) 2009-2018 Lightbend Inc. <http://www.lightbend.com>
  */
 package com.lightbend.akka.johan.stream.samples.java;
 
@@ -30,44 +30,42 @@ import static akka.http.javadsl.server.Directives.*;
  */
 public class Sample3 {
 
-    public static void main(String[] args) {
-        final ActorSystem system = ActorSystem.create();
-        final Materializer materializer = ActorMaterializer.create(system);
-        final ConnectHttp host = ConnectHttp.toHost("127.0.0.1", 9000);
-        final Http http = Http.get(system);
+  public static void main(String[] args) {
+    final ActorSystem system = ActorSystem.create();
+    final Materializer materializer = ActorMaterializer.create(system);
+    final ConnectHttp host = ConnectHttp.toHost("127.0.0.1", 9000);
+    final Http http = Http.get(system);
 
-        // Note that a more realistic solution would use the EntityStreaming API to stream elements
-        // as for example JSON Streaming (see the docs for more details)
-        final Source<ByteString, NotUsed> numbers = Source.unfold(0L, n -> {
-            long next = n + 1;
-            return Optional.of(Pair.create(next, next));
-        }).map(n -> ByteString.fromString(n.toString() + "\n"));
+    // Note that a more realistic solution would use the EntityStreaming API to stream elements
+    // as for example JSON Streaming (see the docs for more details)
+    final Source<ByteString, NotUsed> numbers = Source.range(0, Integer.MAX_VALUE)
+        .map(n -> ByteString.fromString(n.toString() + "\n"));
 
+    final Route route =
+        path("numbers", () ->
+            get(() ->
+                complete(HttpResponse.create()
+                    .withStatus(StatusCodes.OK)
+                    .withEntity(HttpEntities.create(
+                        ContentTypes.TEXT_PLAIN_UTF8,
+                        numbers
+                    )))
+            )
+        );
 
-        final Route route =
-                path("numbers", () ->
-                        get(() ->
-                                complete(HttpResponse.create()
-                                        .withStatus(StatusCodes.OK)
-                                        .withEntity(HttpEntities.create(
-                                                ContentTypes.TEXT_PLAIN_UTF8,
-                                                numbers
-                                        )))
-                        )
-                );
+    final CompletionStage<ServerBinding> bindingCompletionStage =
+        http.bindAndHandle(route.flow(system, materializer), host, materializer);
 
-        final CompletionStage<ServerBinding> bindingCompletionStage =
-                http.bindAndHandle(route.flow(system, materializer), host, materializer);
+    bindingCompletionStage.whenComplete((binding, exception) -> {
+      if (binding != null) {
+        final InetSocketAddress address = binding.localAddress();
+        System.out.println("Akka HTTP server running at " + address.getHostString() + ":" + address.getPort());
+      } else {
+        System.out.print("Failed to bind HTTP server: " + exception.getMessage());
+        exception.fillInStackTrace();
+      }
+    });
 
-        bindingCompletionStage.thenAccept((binding) -> {
-            final InetSocketAddress address = binding.localAddress();
-            System.out.println("Akka HTTP server running at " + address.getHostString() + ":" + address.getPort());
-        }).exceptionally((ex) -> {
-            System.out.print("Failed to bind HTTP server: " + ex.getMessage());
-            ex.fillInStackTrace();
-            return null;
-        });
-
-    }
+  }
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2017 Lightbend Inc. <http://www.lightbend.com>
+ * Copyright (C) 2009-2018 Lightbend Inc. <http://www.lightbend.com>
  */
 package com.lightbend.akka.johan.stream.samples.java;
 
@@ -20,7 +20,7 @@ public class Sample1 {
         final Materializer materializer = ActorMaterializer.create(system);
 
         final Source<Integer, NotUsed> source =
-                Source.range(0, 20000000);
+                Source.range(0, 20_000_000);
 
         final Flow<Integer, String, NotUsed> flow =
                 Flow.fromFunction((Integer n) -> n.toString());

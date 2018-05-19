@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2017 Lightbend Inc. <http://www.lightbend.com>
+ * Copyright (C) 2009-2018 Lightbend Inc. <http://www.lightbend.com>
  */
 package com.lightbend.akka.johan.stream.samples.java;
 
@@ -22,6 +22,9 @@ import akka.stream.javadsl.Flow;
 import scala.concurrent.duration.FiniteDuration;
 
 import java.net.InetSocketAddress;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalUnit;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -47,7 +50,7 @@ public class Sample4 {
 
         public CompletionStage<List<String>> asyncBulkInsert(final List<String> entries) {
             // simulate that writing to a database takes ~30 millis
-            return after(FiniteDuration.create(30, TimeUnit.MILLISECONDS),
+            return after(Duration.of(30, ChronoUnit.MILLIS),
                     system.scheduler(),
                     system.dispatcher(),
                     () -> {
@@ -75,7 +78,7 @@ public class Sample4 {
                                         .getStreamedText()
                                         .fold("", (acc, elem) -> acc + elem)
                         )
-                        .groupedWithin(1000, FiniteDuration.create(1, SECONDS))
+                        .groupedWithin(1000, Duration.of(1, ChronoUnit.SECONDS))
                         .mapAsync(5, database::asyncBulkInsert)
                         .map(written ->
                                 TextMessage.create(
@@ -92,14 +95,16 @@ public class Sample4 {
         final CompletionStage<ServerBinding> bindingCompletionStage =
                 http.bindAndHandle(route.flow(system, materializer), host, materializer);
 
-        bindingCompletionStage.thenAccept((binding) -> {
-            final InetSocketAddress address = binding.localAddress();
-            System.out.println("Akka HTTP server running at " + address.getHostString() + ":" + address.getPort());
-        }).exceptionally((ex) -> {
-            System.out.print("Failed to bind HTTP server: " + ex.getMessage());
-            ex.fillInStackTrace();
-            return null;
+        bindingCompletionStage.whenComplete((binding, exception) -> {
+            if (binding != null) {
+                final InetSocketAddress address = binding.localAddress();
+                System.out.println("Akka HTTP server running at " + address.getHostString() + ":" + address.getPort());
+            } else {
+                System.out.print("Failed to bind HTTP server: " + exception.getMessage());
+                exception.fillInStackTrace();
+            }
         });
+
 
     }
 
