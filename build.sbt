@@ -1,15 +1,15 @@
 organization := "com.lightbend.akka.johan"
 name := "stream-samples"
 version := "1.0"
-scalaVersion := "2.12.1"
+scalaVersion := "2.12.6"
 
 scalacOptions ++= List(
   "-unchecked",
   "-deprecation"
 ) 
 
-lazy val AkkaVersion = "2.4.16"
-lazy val AkkaHttpVersion = "10.0.3"
+lazy val AkkaVersion = "2.5.12"
+lazy val AkkaHttpVersion = "10.1.1"
 
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-stream" % AkkaVersion,
