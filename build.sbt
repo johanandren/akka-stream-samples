@@ -9,7 +9,7 @@ scalacOptions ++= List(
   "-deprecation"
 ) 
 
-lazy val AkkaVersion = "2.5.12"
+lazy val AkkaVersion = "2.5.13"
 lazy val AkkaHttpVersion = "10.1.1"
 
 libraryDependencies ++= Seq(
